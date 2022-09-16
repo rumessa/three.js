@@ -1,0 +1,73 @@
+<head>
+  <script type="importmap">
+      {
+          "imports": {
+              "three": "https://unpkg.com/three@0.138.0/build/three.module.js",
+              "OrbitControls": "https://unpkg.com/three@0.138.0/examples/jsm/controls/OrbitControls.js"
+          }
+      }
+  </script>
+</head>
+
+<script type="module">
+  import * as THREE from 'three';
+
+  function main() {
+    const canvas = document.querySelector('#c');          // so we decide exactly where canvas shall be we make it ourselves
+    const renderer = new THREE.WebGLRenderer({canvas});   // to render canvas
+
+    const fov = 75;     // field of view camera at 75 degrees
+    const aspect = 2;   // the canvas default 300 x 150 so 300/150 = 2
+    const near = 0.1;   // near and far is range for the space in front of camera that will be rendered
+    const far = 5;
+    const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);    // takes degrees
+
+    camera.position.z = 2;   // on the Z axis to look at the origin
+
+    const scene = new THREE.Scene();
+
+    // create geometry
+    const boxWidth = 1;
+    const boxHeight = 1;
+    const boxDepth = 1;
+    const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+
+    const material = new THREE.MeshPhongMaterial({color: 0x44aa88});   // created basic material with color set
+
+    const cube = new THREE.Mesh(geometry, material);    // mesh includes: geometry, material, position in scene etc relative to parent
+
+    scene.add(cube);   // add mesh to scene
+
+
+    // add light
+    {
+      const color = 0xFFFFFF;
+      const intensity = 1;
+      const light = new THREE.DirectionalLight(color, intensity);
+      light.position.set(-1, 2, 4);
+      scene.add(light);
+    } 
+
+    function render(time) {
+      time *= 0.001;  // convert time to seconds
+ 
+      cube.rotation.x = time;
+      cube.rotation.y = time;
+ 
+      renderer.render(scene, camera);
+ 
+      requestAnimationFrame(render);
+  }
+
+  requestAnimationFrame(render);
+
+  }
+  main();
+</script>
+
+<body>
+    <p>Hi</p>
+    <canvas id="c">
+
+    </canvas>
+</body>
