@@ -1,5 +1,5 @@
 # three.js
-Three.js repo to learn.
+three.js repo to learn.
 
 ## how to use
 - For files inside room 1 folder, you can use any server to see results.
