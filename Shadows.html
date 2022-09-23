@@ -1,0 +1,181 @@
+<head>
+    <script type="module">
+        import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/build/three.module.js';
+        import {OrbitControls} from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/examples/jsm/controls/OrbitControls.js';
+        import {GLTFLoader} from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/examples/jsm/loaders/GLTFLoader.js';
+    </script>
+</head>
+
+<body>
+    <canvas id="c">
+
+    </canvas>
+</body>
+
+<script type="module">
+    import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/build/three.module.js';
+    import {OrbitControls} from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/examples/jsm/controls/OrbitControls.js';
+    import {GLTFLoader} from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/examples/jsm/loaders/GLTFLoader.js';
+    function main() {
+        const canvas = document.querySelector('#c');  
+        const renderer = new THREE.WebGLRenderer({canvas});
+
+        // camera
+        const fov = 45;     // field of view camera at 75 degrees
+        const aspect = 2;   // the canvas default 300 x 150 so 300/150 = 2
+        const near = 0.1;   // near and far is range for the space in front of camera that will be rendered
+        const far = 100;
+        const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+        camera.position.set(0, 20, 20);
+        camera.lookAt(0, 0, 0);
+        
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color("white");
+
+        const loader = new THREE.TextureLoader();
+        
+        // floor
+        {
+            const planeSize = 40;
+            const planeGeo = new THREE.PlaneGeometry(planeSize, planeSize);
+            const planeMat = new THREE.MeshBasicMaterial({
+                side: THREE.DoubleSide,
+                color: 0xf5fff6,
+            });
+            const mesh = new THREE.Mesh(planeGeo, planeMat);
+            mesh.rotation.x = Math.PI * -.5;
+            scene.add(mesh);
+        }
+
+        // hemisphere light to brighten up everything
+        {
+            const skyColor = 0xB1E1FF;     // light blue
+            const groundColor = 0xB97A20;  // brownish orange
+            const intensity = 0.25;
+            const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
+            scene.add(light);
+        }
+
+        // directional light to give definition to the balls
+        {
+            const color = 0xFFFFFF;
+            const intensity = 0.75;
+            const light = new THREE.DirectionalLight(color, intensity);
+            light.position.set(0, 10, 5);
+            light.target.position.set(-5, 0, 0);
+            scene.add(light);
+            scene.add(light.target);
+        } 
+
+        const shadowTexture = loader.load('https://threejs.org/manual/examples/resources/images/roundshadow.png');  // shadows for the balls
+        const sphereShadowBases = [];  // array for each ball + associated object
+
+        // sphere
+        const sphereRadius = 1.25;
+        const sphereWidthDiv = 32;
+        const sphereHeightDiv = 16;
+        const sphereGeometry = new THREE.SphereGeometry(sphereRadius, sphereWidthDiv, sphereHeightDiv)
+
+        // plane for the shadows
+        const planeSize = 1;
+        const shadowGeo = new THREE.PlaneGeometry(planeSize, planeSize);
+
+        //we will make a bunch of bouncing balls. we will make a base object and then have the 
+        // sphere mesh and shadow mesh children of that base. hence, when they move they'll move together
+        const numSphere = 8;
+        for (let i=0; i < numSphere; i++) {
+            // make the base
+            const base = new THREE.Object3D()
+            scene.add(base);
+
+            // add shadow to base
+            const shadowMat = new THREE.MeshBasicMaterial({
+                map: shadowTexture,
+                transparent: true,    // so we can see the ground - shadows not opaque
+                depthWrite: false,    // so we don't have to sort - no shadows messes up another
+            });
+            const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+            shadowMesh.position.y = 0.001;  // so we're above the ground slightly - no z fighting
+            shadowMesh.rotation.x = Math.PI * -.5;
+            const shadowSize = sphereRadius * 4;
+            shadowMesh.scale.set(shadowSize, shadowSize, shadowSize);
+            base.add(shadowMesh); 
+
+            // add sphere to base
+            const u = i / numSphere;   // goes from 0 to 1 as we iterate the spheres.
+            const sphereMat = new THREE.MeshPhongMaterial();
+            sphereMat.color.setHSL(u+5, 1, .65);
+            const sphereMesh = new THREE.Mesh(sphereGeometry, sphereMat);
+            sphereMesh.position.set(0, sphereRadius + 3, 0);
+            base.add(sphereMesh);
+
+            // remember all 3 plus the y position
+            sphereShadowBases.push({base, sphereMesh, shadowMesh, y: sphereMesh.position.y});
+        }
+
+        // responsiveness
+        function resizeRendererToDisplaySize(renderer) {
+            const canvas = renderer.domElement;
+            const width = canvas.clientWidth;
+            const height = canvas.clientHeight;
+            const needResize = canvas.width !== width || canvas.height !== height;
+            if (needResize) {
+            renderer.setSize(width, height, false);
+            }
+            return needResize;
+        }
+
+        // now we make 'em bounce using Math using sin. also set shadows to become lighter when ball goes up
+        function render(time) {
+            time *= 0.001;
+            resizeRendererToDisplaySize(renderer);
+            {
+                const canvas = renderer.domElement;
+                camera.aspect = canvas.clientWidth / canvas.clientHeight;
+                camera.updateProjectionMatrix();
+            }
+
+            sphereShadowBases.forEach((sphereShadowBase, ndx) => {
+                const {base, sphereMesh, shadowMesh, y} = sphereShadowBase;
+
+                // u is a value that goes from 0 to 1 as we iterate the spheres
+                const u = ndx / sphereShadowBases.length;
+
+                // compute a position for the base. this moves both shadow + sphere
+                const speed = time * .2;
+                const angle = speed + u * Math.PI * 2 * (ndx % 1 ? 1 : -1);
+                const radius = Math.sin(speed - ndx) * 10;
+                base.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+
+                // yOff is a value that goes from 0 to 1
+                const yOff = Math.abs(Math.sin(time * 2 + ndx));
+                // move the sphere up and down
+                sphereMesh.position.y = y + THREE.MathUtils.lerp(-2, 2, yOff);
+                // fade the shadow as the sphere goes up
+                shadowMesh.material.opacity = THREE.MathUtils.lerp(1, .25, yOff);
+            });
+
+            renderer.render(scene, camera);
+
+            requestAnimationFrame(render);
+        }
+ 
+        requestAnimationFrame(render);
+    }
+    main();
+
+</script>
+
+
+<style>
+    html, body {
+       margin: 0;
+       height: 100%;
+    }
+    
+    #c {
+       width: 100%;
+       height: 100%;
+       display: block;
+    }
+</style>
