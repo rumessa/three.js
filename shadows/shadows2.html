@@ -1,0 +1,155 @@
+<head>
+    <title>Shadows rendered by lights</title>
+</head>
+
+<body>
+    <canvas id="c">
+
+    </canvas>
+</body>
+
+<script type="module">
+    import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/build/three.module.js';
+    import {OrbitControls} from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/examples/jsm/controls/OrbitControls.js';
+    import {GLTFLoader} from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/examples/jsm/loaders/GLTFLoader.js';
+    
+    function main() {
+        const canvas = document.querySelector('#c');  
+        const renderer = new THREE.WebGLRenderer({canvas});
+        renderer.shadowMap.enabled = true;
+
+        // camera
+        const fov = 45;     // field of view camera at 75 degrees
+        const aspect = 2;   // the canvas default 300 x 150 so 300/150 = 2
+        const near = 0.1;   // near and far is range for the space in front of camera that will be rendered
+        const far = 100;
+        const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+        camera.position.set(0, 20, 20);
+
+        const controls = new OrbitControls(camera, canvas);
+        controls.target.set(0, 5, 0);
+        controls.update();
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color("grey");
+
+
+        // floor 
+        {
+            const planeSize = 35;
+            const planeGeo = new THREE.PlaneGeometry(planeSize, planeSize);
+            const planeMat = new THREE.MeshPhongMaterial({
+                side: THREE.DoubleSide,
+                color: 0xf5ff66,
+            });
+            const mesh = new THREE.Mesh(planeGeo, planeMat);
+            mesh.rotation.x = Math.PI * -.5;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+        }
+
+        // walls
+        {
+            const cubeSize = 35;
+            const cubeGeo = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+            const cubeMat = new THREE.MeshPhongMaterial({
+                color: 0xffffff,
+                side: THREE.BackSide,
+            });
+            const mesh = new THREE.Mesh(cubeGeo, cubeMat);
+            mesh.receiveShadow = true;
+            mesh.position.set(0, cubeSize / 2 - 0.1, 0);
+            scene.add(mesh);
+        }
+
+        // ball
+        const sphereRadius = 1.25;
+        const sphereWidthDiv = 32;
+        const sphereHeightDiv = 16;
+        const sphereGeometry = new THREE.SphereGeometry(sphereRadius, sphereWidthDiv, sphereHeightDiv);
+        const sphereMaterial = new THREE.MeshPhongMaterial({
+            color: "0xff4433",
+        });
+        const sphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        sphereMesh.receiveShadow = true;
+        sphereMesh.castShadow = true;
+        sphereMesh.position.set(-5, 3, 0);
+        scene.add(sphereMesh);
+
+        // lights
+        {
+            const color = 0xFFFFFF;
+            const intensity = 1;
+            // const light = new THREE.DirectionalLight(color, intensity);
+
+            const light = new THREE.SpotLight(color, intensity);
+
+            // const light = new THREE.PointLight(color, intensity);
+            // const helper = new THREE.PointLightHelper(light);
+            // scene.add(helper);
+
+            light.castShadow = true;
+            light.position.set(5, 10, 0);
+            scene.add(light);
+
+            // helpers for directional and spotlight
+            const helper = new THREE.DirectionalLightHelper(light);
+            scene.add(helper);
+        } 
+
+        // responsiveness
+        function resizeRendererToDisplaySize(renderer) {
+            const canvas = renderer.domElement;
+            const width = canvas.clientWidth;
+            const height = canvas.clientHeight;
+            const needResize = canvas.width !== width || canvas.height !== height;
+            if (needResize) {
+            renderer.setSize(width, height, false);
+            }
+            return needResize;
+        }
+
+        function render() {
+
+            resizeRendererToDisplaySize(renderer);
+
+            {
+            const canvas = renderer.domElement;
+            camera.aspect = canvas.clientWidth / canvas.clientHeight;
+            camera.updateProjectionMatrix();
+            }
+
+            renderer.render(scene, camera);
+
+            requestAnimationFrame(render);
+        }
+
+        requestAnimationFrame(render);
+    }
+    main();
+
+    // directional light
+    // will use orthagraphic camera and wherever limits end the shadows will be cut 
+    // to tackle this can inc the size of the camera but that'll lead to low res shadows - very blocky
+    // combat this by light.shadow.mapSize.width/height (maximum is 512x512) but larger they are
+    // more memory will be taken
+
+    // spotlight
+    // uses a perspective camera and the shadow camera is controlled by light itself
+    
+    // pointlight
+    // shines from all directions so the slowest shadow drawer
+</script>
+
+<style>
+    html, body {
+       margin: 0;
+       height: 100%;
+    }
+    
+    #c {
+       width: 100%;
+       height: 100%;
+       display: block;
+    }
+</style>
