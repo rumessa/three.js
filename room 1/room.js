@@ -106,16 +106,37 @@ function main() {
 
     // walls 
     {
+        const loader = new THREE.TextureLoader();
+        const texture = loader.load('https://st.depositphotos.com/1166351/4122/i/950/depositphotos_41221851-stock-photo-ancient-roman-stone-wall-texture.jpg');
+        const materials = [
+            new THREE.MeshPhongMaterial({map: texture, side: THREE.DoubleSide}),
+            new THREE.MeshPhongMaterial({map: texture, side: THREE.DoubleSide}),
+            new THREE.MeshPhongMaterial({opacity: false, transparent: true}),
+            new THREE.MeshPhongMaterial({map: texture, side: THREE.DoubleSide}),
+            new THREE.MeshPhongMaterial({map: texture, side: THREE.DoubleSide}),
+            new THREE.MeshPhongMaterial({map: texture, side: THREE.DoubleSide}),
+        ];
+
         const cubeSize = 40;
         const cubeGeo = new THREE.BoxGeometry(cubeSize, 14, cubeSize);
-        const cubeMat = new THREE.MeshPhongMaterial({
-            color: 0xffffff,
-            side: THREE.BackSide,
-        });
-        const mesh = new THREE.Mesh(cubeGeo, cubeMat);
+        // const cubeMat = new THREE.MeshPhongMaterial({
+        //     color: 0xffffff,
+        //     side: THREE.BackSide,
+        // });
+        const mesh = new THREE.Mesh(cubeGeo, materials);
         mesh.receiveShadow = true;
         mesh.position.set(0, 14/2 - 0.1, 0);
         scene.add(mesh);
+    }
+
+    // roof 
+    {
+        const geometry = new THREE.ConeGeometry( 28.5, 20, 4, 1, true );
+        const material = new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide } );
+        const cone = new THREE.Mesh( geometry, material );
+        cone.geometry.rotateY(Math.PI / 4);
+        cone.position.set(0, 24, 0);
+        scene.add( cone );
     }
 
     // light
