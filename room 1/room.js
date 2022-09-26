@@ -7,6 +7,7 @@ import {GLTFLoader} from 'https://threejsfundamentals.org/threejs/resources/thre
 function main() {
     const canvas = document.querySelector('#c');
     const renderer = new THREE.WebGLRenderer({canvas});
+    renderer.shadowMap.enabled = true;
 
     // camera
     const fov = 45;
@@ -22,6 +23,7 @@ function main() {
     controls.update();
 
     const scene = new THREE.Scene();
+    scene.background = new THREE.Color("white");
 
 
     // cylinders - pillars
@@ -29,8 +31,8 @@ function main() {
         const geometry = new THREE.CylinderGeometry(0.75, 1, 8, 12);
         const loader = new THREE.TextureLoader();
         function makeInstance(geometry, x, z) {
-            const material = new THREE.MeshBasicMaterial({
-                color: 0xC0C0C0,
+            const material = new THREE.MeshPhongMaterial({
+                //color: 0xC0C0C0,
                 map: loader.load('https://thumbs.dreamstime.com/b/antique-marble-column-texture-detail-181234917.jpg'),
             }); 
 
@@ -38,6 +40,8 @@ function main() {
             scene.add(cylinder);
 
             cylinder.position.set(x, 4, z);
+            cylinder.receiveShadow = true;
+            cylinder.castShadow = true;
 
             return cylinder;
         }
@@ -54,8 +58,8 @@ function main() {
         const geometry = new THREE.CylinderGeometry(1.25, 0.75, 1, 12);
         const loader = new THREE.TextureLoader();
         function makeInstance(geometry, x, z) {
-            const material = new THREE.MeshBasicMaterial({
-                color: 0xC0C0C0,
+            const material = new THREE.MeshPhongMaterial({
+                //color: 0xC0C0C0,
                 map: loader.load('https://thumbs.dreamstime.com/b/antique-marble-column-texture-detail-181234917.jpg'),
             }); 
 
@@ -63,6 +67,8 @@ function main() {
             scene.add(cylinder);
 
             cylinder.position.set(x, 8, z);
+            cylinder.receiveShadow = true;
+            cylinder.castShadow = true;
 
             return cylinder;
         }
@@ -94,29 +100,38 @@ function main() {
         });
         const mesh = new THREE.Mesh(planeGeo, planeMat);
         mesh.rotation.x = Math.PI * -.5;
+        mesh.receiveShadow = true;
         scene.add(mesh);
     }
-    
 
-    // ambient light
+    // walls 
     {
-        const color = 0xc0c0c0;
-        const intensity = 1;
-        const light = new THREE.AmbientLight(color, intensity);
-        scene.add(light);
+        const cubeSize = 40;
+        const cubeGeo = new THREE.BoxGeometry(cubeSize, 14, cubeSize);
+        const cubeMat = new THREE.MeshPhongMaterial({
+            color: 0xffffff,
+            side: THREE.BackSide,
+        });
+        const mesh = new THREE.Mesh(cubeGeo, cubeMat);
+        mesh.receiveShadow = true;
+        mesh.position.set(0, 14/2 - 0.1, 0);
+        scene.add(mesh);
     }
 
-    // directional light
+    // light
     {
         const color = 0xFFFFFF;
         const intensity = 1;
-        const light = new THREE.DirectionalLight(color, intensity);
-        light.position.set(0, 10, 0);
-        light.target.position.set(-5, -2, 2);
-        //scene.add(light);
-        //scene.add(light.target);
+        const light = new THREE.SpotLight(color, intensity);
+        light.castShadow = true;
+        light.position.set(0, 30, 0);
 
-        const helper = new THREE.DirectionalLightHelper(light);
+        light.shadow.mapSize.width = 512;
+        light.shadow.mapSize.height = 512;
+
+        scene.add(light);
+        
+        const helper = new THREE.SpotLightHelper(light);
         scene.add(helper);
     }
     
